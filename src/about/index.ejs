@@ -1,0 +1,28 @@
+---
+layout: _default
+title: about
+description: description About
+keyword: keyword About
+vendercss: ['aos/aos','slick/slick']
+venderjs: ['aos/aos','slick/slick.min']
+css: ['common','about']
+js: ['common','about']
+page: about
+---
+<script>
+    if (!window.sessionStorage.getItem("storage_loadding")) {
+        document.documentElement.classList.add("is-loadding");    
+        window.sessionStorage.setItem("storage_loadding", new Date().getTime().toString());    
+    }
+</script>
+<main class="p-about">   
+    <div class="c-loading">
+        <div class="c-loading__inner">
+            <div class="c-loading__content">
+                <div class="c-loading__item"></div>
+                <div class="c-loading__item"></div>
+            </div>
+        </div>
+    </div>   
+    <h1><img src="../assets/images/common/img_dummy.webp" alt=""></h1>
+</main>

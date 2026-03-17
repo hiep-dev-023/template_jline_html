@@ -1,0 +1,28 @@
+---
+layout: _default
+title: Title1321
+description: 
+keyword:
+vendercss: ['aos/aos','slick/slick']
+venderjs: ['aos/aos','slick/slick.min']
+css: ['common','top']
+js: ['common','top']
+page: top
+---
+<script>
+    if (!window.sessionStorage.getItem("storage_loadding")) {
+        document.documentElement.classList.add("is-loadding");    
+        window.sessionStorage.setItem("storage_loadding", new Date().getTime().toString());    
+    }
+</script>
+<main class="p-top">   
+    <div class="c-loading">
+        <div class="c-loading__inner">
+            <div class="c-loading__content">
+                <div class="c-loading__item"></div>
+                <div class="c-loading__item"></div>
+            </div>
+        </div>
+    </div>   
+    <h1><a href="./about">bbb</a></h1>
+</main>

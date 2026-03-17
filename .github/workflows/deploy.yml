@@ -1,0 +1,70 @@
+name: Deploy to FTP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  repository_dispatch:
+    types: [wp-build]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.FTP_SERVER != '' && secrets.FTP_USERNAME != '' && secrets.FTP_PASSWORD != '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate .htaccess & .htpasswd
+        env:
+          AUTH_ROOT: ${{ vars.HTACCESS_AUTH_ROOT }}
+          AUTH_USER: ${{ vars.HTACCESS_AUTH_USER }}
+          AUTH_PASS: ${{ secrets.HTACCESS_AUTH_PASS }}
+        run: |
+          if [ -z "$AUTH_ROOT" ]; then
+            echo "[htaccess] skipped — HTACCESS_AUTH_ROOT not set"
+          else
+            cat <<EOF > public/.htaccess
+          <Files ~ "^\.(htaccess|htpasswd)$">
+          Deny from all
+          </Files>
+          AuthType Basic
+          AuthUserFile ${AUTH_ROOT}/.htpasswd
+
+          AuthName "Please enter your ID and password"
+          Require valid-user
+          EOF
+            echo "[htaccess] generated .htaccess (root: ${AUTH_ROOT})"
+
+            if [ -z "$AUTH_USER" ] || [ -z "$AUTH_PASS" ]; then
+              echo "[htpasswd] skipped — AUTH_USER or AUTH_PASS not set"
+            else
+              echo "${AUTH_USER}:${AUTH_PASS}" > public/.htpasswd
+              echo "[htpasswd] generated .htpasswd"
+            fi
+          fi
+
+      - name: Deploy to FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: public/
+          server-dir: public_html/client/template_jline_html/

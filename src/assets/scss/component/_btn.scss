@@ -1,0 +1,73 @@
+@use "sass:math";
+@use "../global" as *;
+
+/*!
+component > btn
+------------------------------
+*/
+
+
+.c-totop {
+    position: fixed;
+    right: 20px;
+    bottom: 60px;
+    display: block;
+    font-size: 0;
+    width: 45px;
+    height: 45px;
+    transform: translateY(150px);
+    transition: 0.5s;
+    font-size: 0;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    z-index: 9;
+    background: var(--base);
+    border-radius: 40px;
+    border: 2px solid var(--white);
+
+    @include mq(md) {
+        right: 60px;
+        bottom: 69px;
+        width: 60px;
+        height: 60px;
+        border-radius: 60px;
+        border: 3px solid var(--white);
+    }
+    &::before {
+        position: absolute;
+        top: 50%;
+        left: 11px;
+        content: "";
+        width: 12px;
+        height: 3px;
+        background: var(--white);
+        transform: translateY(-50%) rotate(-45deg);
+        pointer-events: none;
+        @include mq(md) {
+            left: 15px;
+            width: 15px;
+        }
+    }
+    &::after {
+        position: absolute;
+        top: 50%;
+        right: 11px;
+        content: "";
+        width: 12px;
+        height: 3px;
+        transform: translateY(-50%) rotate(45deg);
+        pointer-events: none;
+        background: var(--white);
+        @include mq(md) {
+            right: 15px;
+            width: 15px;
+        }
+    }
+
+    &:hover {
+        @include mq(md) {
+            transform: translateY(-20px) !important;
+        }
+    }
+}

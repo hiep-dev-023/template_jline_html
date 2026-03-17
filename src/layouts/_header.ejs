@@ -1,0 +1,19 @@
+<header class="c-header">
+    <div class="c-header__inner">  
+        <% if(file.data.page === 'top'){%><h1 class="c-header__logo"><% }else{ %><div class="c-header__logo"><% } %> 
+            <a href="" class="c-header__logo__link">
+                <img src="<%= assetsDir %>assets/images/common/img_dummy.webp" alt="">
+            </a>
+            <span class="c-header__logo__caption">SITE12313</span>
+        <% if(file.data.page === 'top'){%></h1><% }else{ %></div><% } %> 
+        
+        <div class="c-header__btn">
+            <a href="" class="c-btn">btn</a>
+        </div>
+    </div>
+    <div class="c-toggle">
+        <span class="c-toggle__line"></span>
+        <span class="c-toggle__txt">MENU</span>
+    </div>
+</header>
+<!--▲ Content area ▲-->

@@ -1,0 +1,27 @@
+@use "../global" as *;
+
+/*!
+layout > container
+------------------------------
+*/
+
+.l-container {
+    width: unset;
+    padding: 0 20px;
+
+}
+
+@media screen and (min-width: 768px) {
+    %_container {
+        box-sizing: border-box;
+        margin: 0 auto;
+        width: auto;
+    }
+
+    .l-container {
+        max-width: $width-content;
+        padding: 0 40px;
+        margin: 0 auto;
+        @extend %_container;
+    }
+}
