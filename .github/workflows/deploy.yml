@@ -12,6 +12,7 @@ jobs:
   deploy:
     uses: hiep011094/shared-workflows/.github/workflows/deploy-ftp.yml@main
     with:
-      server: jline
-      server-dir: public_html/client/template_jline_html/
+      project-name: template_jline_html
+      server-ftp: jline
+      local-dir: public/
     secrets: inherit
