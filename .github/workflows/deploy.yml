@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy:
-    uses: hiep011094/shared-workflows/.github/workflows/deploy-ftp.yml@main
+    uses: hiep-dev-023/shared-workflows/.github/workflows/deploy-ftp.yml@main
     with:
       project-name: template_jline_html
       server-ftp: jline
