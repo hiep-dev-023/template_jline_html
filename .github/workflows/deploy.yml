@@ -1,18 +1,53 @@
-name: Deploy to FTP
+name: Deploy To FTP Server
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
-  repository_dispatch:
-    types: [wp-build]
+      - main # Chỉ chạy khi có code đẩy lên nhánh main
+  workflow_dispatch: # Cho phép chạy thủ công từ GitHub UI
+
+concurrency:
+  group: deploy-${{ github.repository }}
+  cancel-in-progress: false # Bắt buộc xếp hàng, không cho 2 người chạy cùng lúc
 
 jobs:
-  deploy:
-    uses: hiep-dev-023/shared-workflows/.github/workflows/deploy-ftp.yml@main
-    with:
-      project-name: template_jline_html
-      server-ftp: jline
-      local-dir: public/
-    secrets: inherit
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Kéo Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Lấy toàn bộ lịch sử Git để tìm file thay đổi
+
+      - name: 🔍 Đọc cấu hình Deploy
+        id: config
+        run: |
+          SERVER_NAME=$(jq -r '.server' deploy-config.json | tr 'a-z' 'A-Z')
+          HAS_BUILD=$(jq -r '.has_build_step // false' deploy-config.json)
+          BUILD_CMD=$(jq -r '.build_command // "npm run build"' deploy-config.json)
+          echo "SERVER_NAME=$SERVER_NAME" >> $GITHUB_ENV
+          echo "HAS_BUILD=$HAS_BUILD" >> $GITHUB_ENV
+          echo "BUILD_CMD=$BUILD_CMD" >> $GITHUB_ENV
+
+      - name: ⚙️ Cài đặt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Cài đặt dependencies dự án (nếu cần build)
+        if: env.HAS_BUILD == 'true'
+        run: npm ci
+
+      - name: 🔨 Build dự án
+        if: env.HAS_BUILD == 'true'
+        run: ${{ env.BUILD_CMD }}
+
+      - name: 📦 Cài đặt thư viện deploy
+        run: npm install --no-save basic-ftp apache-crypt
+
+      - name: 🚀 Chạy Script Deploy
+        run: node .github/scripts/deploy.js
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          # Tự động ghép tên SERVER với _CONFIG để lấy đúng Secret
+          SERVER_SECRET_JSON: ${{ secrets[format('{0}_CONFIG', env.SERVER_NAME)] }}

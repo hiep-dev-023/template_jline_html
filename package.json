@@ -4,7 +4,7 @@
   "description": "Static site template with EJS, SCSS, JS — modern build system",
   "type": "module",
   "scripts": {
-    "start": "node scripts/build.js --watch",
+    "dev": "node scripts/build.js --watch",
     "build": "node scripts/build.js",
     "clean": "node scripts/clean.js"
   },
