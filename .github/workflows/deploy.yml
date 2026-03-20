@@ -46,7 +46,7 @@ jobs:
         run: npm install --no-save basic-ftp apache-crypt
 
       - name: 🚀 Chạy Script Deploy
-        run: node .github/scripts/deploy.js
+        run: node .github/scripts/deploy.cjs
         env:
           GITHUB_REPO: ${{ github.repository }}
           # Tự động ghép tên SERVER với _CONFIG để lấy đúng Secret
