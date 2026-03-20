@@ -57,7 +57,7 @@ function validateConfig(config) {
  * Upload toàn bộ nội dung của một thư mục local lên FTP (đệ quy).
  * Giải quyết lỗi: client.uploadFrom() chỉ upload 1 file, KHÔNG upload thư mục.
  */
-async function uploadDirectory(client, localDir, remoteDir) {
+async function uploadDirectory(client, localDir, remoteDir, ftpRoot) {
     const files = walkDir(localDir);
     let uploadCount = 0;
 
@@ -68,6 +68,7 @@ async function uploadDirectory(client, localDir, remoteDir) {
         // Ensure remote directory exists
         const remoteFileDir = path.posix.dirname(remoteFilePath);
         await client.ensureDir(remoteFileDir);
+        await client.cd(ftpRoot); // Reset CWD sau ensureDir
 
         await client.uploadFrom(localFilePath, remoteFilePath);
         uploadCount++;
@@ -207,6 +208,7 @@ async function runDeploy() {
 
             // Tạo thư mục đích
             await client.ensureDir(targetDir);
+            await client.cd(ftpRoot); // Reset CWD sau ensureDir
 
             // 1. Tạo file khóa chủ quyền
             console.log('🔒 Tạo .repo_lock...');
@@ -235,7 +237,7 @@ async function runDeploy() {
 
             // 4. Upload toàn bộ source (đệ quy)
             console.log(`📤 Upload toàn bộ thư mục ${config.source_folder}/...`);
-            await uploadDirectory(client, config.source_folder, targetDir);
+            await uploadDirectory(client, config.source_folder, targetDir, ftpRoot);
 
             console.log('');
             console.log('✅ Hoàn thành Deploy lần đầu!');
@@ -258,7 +260,7 @@ async function runDeploy() {
                 if (parseInt(commitCount, 10) < 2) {
                     console.log('ℹ️ Chỉ có 1 commit — không có gì để so sánh.');
                     console.log('ℹ️ Chuyển sang upload toàn bộ source...');
-                    await uploadDirectory(client, config.source_folder, targetDir);
+                    await uploadDirectory(client, config.source_folder, targetDir, ftpRoot);
                     console.log('✅ Hoàn thành!');
                     return;
                 }
@@ -266,7 +268,7 @@ async function runDeploy() {
             } catch (gitErr) {
                 console.error(`⚠️ Git diff lỗi: ${gitErr.message}`);
                 console.log('ℹ️ Fallback: Upload toàn bộ source...');
-                await uploadDirectory(client, config.source_folder, targetDir);
+                await uploadDirectory(client, config.source_folder, targetDir, ftpRoot);
                 console.log('✅ Hoàn thành!');
                 return;
             }
@@ -344,6 +346,7 @@ async function runDeploy() {
                     // File được thêm, sửa, hoặc renamed (file mới)
                     const remoteFileDir = path.posix.dirname(ftpFilePath);
                     await client.ensureDir(remoteFileDir);
+                    await client.cd(ftpRoot); // Reset CWD sau ensureDir
                     await client.uploadFrom(filePath, ftpFilePath);
                     console.log(`   ⬆️ Đã cập nhật: ${relativePath}`);
                     uploadCount++;
