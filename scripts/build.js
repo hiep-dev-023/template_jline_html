@@ -38,7 +38,7 @@ const SCSS_DIR = resolve(SRC, 'assets', 'scss');
 const JS_DIR = resolve(SRC, 'assets', 'js');
 const IMAGES_DIR = resolve(SRC, 'assets', 'images');
 const VIDEOS_DIR = resolve(SRC, 'assets', 'videos');
-const VENDOR_DIR = resolve(SRC, 'assets', 'vender');
+const VENDOR_DIR = resolve(SRC, 'assets', 'vendor');
 
 const isWatch = process.argv.includes('--watch');
 
@@ -378,7 +378,7 @@ function buildJs(changedFile) {
 // 4. Vendor Copy
 // ─────────────────────────────────────────────
 function buildVendor(changedFile) {
-  const destDir = resolve(DIST, 'assets', 'vender');
+  const destDir = resolve(DIST, 'assets', 'vendor');
   const vendorExts = ['.php', '.png', '.jpg', '.scss', '.css', '.js', '.svg', '.woff', '.woff2', '.ttf', '.eot'];
 
   if (changedFile) {
@@ -386,7 +386,7 @@ function buildVendor(changedFile) {
     const dest = resolve(destDir, rel);
     ensureDir(dirname(dest));
     writeFileSync(dest, readFileSync(changedFile));
-    console.log(`[vender] ${norm(rel)}`);
+    console.log(`[vendor] ${norm(rel)}`);
     return;
   }
 
@@ -401,7 +401,7 @@ function buildVendor(changedFile) {
     if (isNewer(file, dest)) {
       ensureDir(dirname(dest));
       writeFileSync(dest, readFileSync(file));
-      console.log(`[vender] ${norm(rel)}`);
+      console.log(`[vendor] ${norm(rel)}`);
     }
   }
   removeStaleFiles(VENDOR_DIR, destDir);
@@ -656,23 +656,23 @@ async function startWatch() {
 
   vendorWatcher.on('change', debounce((filepath) => {
     if (!isVendor(filepath)) return;
-    console.log(`[watch:vender] changed: ${norm(filepath)}`);
+    console.log(`[watch:vendor] changed: ${norm(filepath)}`);
     buildVendor(getAbs(filepath));
     browserSync.reload();
   }));
   vendorWatcher.on('add', debounce((filepath) => {
     if (!isVendor(filepath)) return;
-    console.log(`[watch:vender] added: ${norm(filepath)}`);
+    console.log(`[watch:vendor] added: ${norm(filepath)}`);
     buildVendor(getAbs(filepath));
     browserSync.reload();
   }));
   vendorWatcher.on('unlink', debounce((filepath) => {
     if (!isVendor(filepath)) return;
     const rel = relative(VENDOR_DIR, getAbs(filepath));
-    const dest = resolve(DIST, 'assets', 'vender', rel);
+    const dest = resolve(DIST, 'assets', 'vendor', rel);
     try { unlinkSync(dest); } catch { /* ignore */ }
-    console.log(`[watch:vender] removed: ${norm(rel)}`);
-    removeEmptyDirs(resolve(DIST, 'assets', 'vender'));
+    console.log(`[watch:vendor] removed: ${norm(rel)}`);
+    removeEmptyDirs(resolve(DIST, 'assets', 'vendor'));
   }));
 
   // Images watcher

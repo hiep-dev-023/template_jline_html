@@ -82,7 +82,7 @@ template_jline_html/
 │   │   ├── scss/                 ← File SCSS (style)
 │   │   ├── js/                   ← File JavaScript
 │   │   ├── images/               ← Hình ảnh gốc (tự chuyển sang WebP)
-│   │   └── vender/               ← Thư viện bên ngoài (jQuery, Slick, AOS...)
+│   │   └── vendor/               ← Thư viện bên ngoài (jQuery, Slick, AOS...)
 │   ├── index.ejs                 ← Trang chủ
 │   ├── sample.ejs                ← Trang mẫu
 │   └── about/                    ← Trang con
@@ -134,31 +134,86 @@ public/ (HTML + CSS + JS + WebP)
 | `.scss`       | Compile thành `.css`, tự động thêm prefix, nén (minify)       |
 | `.js`         | Copy và xử lý                                                 |
 | Hình ảnh      | Tự động chuyển đổi `.jpg/.png` → `.webp` để tối ưu dung lượng |
-| `vender/`     | Copy nguyên bản các thư viện bên ngoài                         |
+| `vendor/`     | Copy nguyên bản các thư viện bên ngoài                         |
 
 ### Hệ thống Layout (EJS)
 
-Mỗi trang EJS sử dụng **front matter** để khai báo metadata:
+Mỗi trang EJS sử dụng **front matter** (khối `---`) ở đầu file để khai báo metadata. Layout `_default.ejs` sẽ đọc các trường này để tự động sinh thẻ `<title>`, `<meta>`, `<link>`, `<script>`.
+
+#### Ví dụ đầy đủ (trang chủ `src/index.ejs`)
 
 ```ejs
 ---
-title: Trang chủ
 layout: _default
-css: top
-js: top
+title: Trang chủ
+description: Mô tả trang chủ cho SEO
+keyword: từ khóa 1, từ khóa 2
+vendorcss: ['aos/aos','slick/slick']
+vendorjs: ['aos/aos','slick/slick.min']
+css: ['common','top']
+js: ['common','top']
+page: top
 ---
 
-<main>
+<main class="p-top">
     <h1>Nội dung trang</h1>
 </main>
 ```
 
-| Trường   | Mô tả                                          |
-| -------- | ----------------------------------------------- |
-| `title`  | Tiêu đề trang (hiển thị trên tab trình duyệt)  |
-| `layout` | Layout sử dụng (file trong `src/layouts/`)       |
-| `css`    | File CSS riêng cho trang (trong `src/assets/scss/`) |
-| `js`     | File JS riêng cho trang (trong `src/assets/js/`)    |
+#### Ví dụ trang con (`src/about/index.ejs`)
+
+```ejs
+---
+layout: _default
+title: about
+description: description About
+keyword: keyword About
+vendorcss: ['aos/aos','slick/slick']
+vendorjs: ['aos/aos','slick/slick.min']
+css: ['common','about']
+js: ['common','about']
+page: about
+---
+
+<main class="p-about">
+    <h1>Nội dung trang About</h1>
+</main>
+```
+
+#### Bảng giải thích các trường Front Matter
+
+| Trường       | Bắt buộc | Kiểu dữ liệu | Mô tả                                                                                                |
+| ------------ | -------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| `layout`     | ✅       | `string`       | Layout sử dụng — tương ứng file trong `src/layouts/` (ví dụ: `_default` → `_default.ejs`)             |
+| `title`      | ✅       | `string`       | Tiêu đề trang, hiển thị trên tab trình duyệt và thẻ `<meta og:title>`                                |
+| `description`| ❌       | `string`       | Mô tả trang cho SEO — sinh ra thẻ `<meta name="description">` và `<meta og:description>`             |
+| `keyword`    | ❌       | `string`       | Từ khóa SEO — sinh ra thẻ `<meta name="keywords">`                                                   |
+| `vendorcss`  | ❌       | `array`        | Danh sách file CSS thư viện ngoài cần load, đường dẫn tương đối từ `src/assets/vendor/` (không cần đuôi `.css`) |
+| `vendorjs`   | ❌       | `array`        | Danh sách file JS thư viện ngoài cần load, đường dẫn tương đối từ `src/assets/vendor/` (không cần đuôi `.js`)   |
+| `css`        | ❌       | `array`        | Danh sách file CSS riêng cho trang, đường dẫn tương đối từ `src/assets/scss/` (không cần đuôi `.css`)            |
+| `js`         | ❌       | `array`        | Danh sách file JS riêng cho trang, đường dẫn tương đối từ `src/assets/js/` (không cần đuôi `.js`)               |
+| `page`       | ❌       | `string`       | Tên trang, dùng để phân biệt class CSS trên `<body>` hoặc logic trong layout                          |
+
+#### Thứ tự load trong HTML (sinh bởi `_default.ejs`)
+
+```
+<head>
+  ├── <meta> tags (title, description, keyword, og:*)
+  ├── <link> vendorcss   ← CSS thư viện (AOS, Slick...)
+  └── <link> css         ← CSS riêng của trang (common, top...)
+</head>
+<body>
+  ├── Header (_header.ejs)
+  ├── Nội dung trang (contents)
+  ├── Footer (_footer.ejs)
+  ├── <script> jQuery     ← Luôn load jQuery trước
+  ├── <script> cookie.js  ← Luôn load cookie.js
+  ├── <script> vendorjs   ← JS thư viện (AOS, Slick...)
+  └── <script> js         ← JS riêng của trang (common, top...)
+</body>
+```
+
+> **💡 Lưu ý**: jQuery (`vendor/jquery/jquery-3.5.1.min.js`) và `cookie.js` được layout **tự động load** cho mọi trang, không cần khai báo trong front matter.
 
 ---
 
