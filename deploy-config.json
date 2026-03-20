@@ -6,6 +6,6 @@
   "build_command": "npm run build",
   "basic_auth": {
     "username": "tester",
-    "password": "mat_khau_test_123"
+    "password": "test"
   }
 }
