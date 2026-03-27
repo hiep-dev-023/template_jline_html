@@ -6,16 +6,20 @@ Tài liệu này dành cho **người quản lý (Owner/Admin)** của GitHub Or
 
 ## 📋 Mục lục
 
+**Phần 1: Cài đặt hệ thống (Dành cho Admin)**
 1. [Tổng quan hệ thống](#1-tổng-quan-hệ-thống)
 2. [Yêu cầu trước khi bắt đầu](#2-yêu-cầu-trước-khi-bắt-đầu)
 3. [Bước 1: Chuẩn bị thư mục trên FTP Server](#3-bước-1-chuẩn-bị-thư-mục-trên-ftp-server)
 4. [Bước 2: Tạo GitHub Secret cho FTP Server](#4-bước-2-tạo-github-secret-cho-ftp-server)
 5. [Bước 3: Xác nhận deploy thành công](#5-bước-3-xác-nhận-deploy-thành-công)
-6. [Thêm server mới](#6-thêm-server-mới)
-7. [Thêm dự án mới (repo mới)](#7-thêm-dự-án-mới-repo-mới)
-8. [Quản lý và bảo trì](#8-quản-lý-và-bảo-trì)
-9. [Câu hỏi thường gặp](#9-câu-hỏi-thường-gặp)
-10. [Quy trình Git chuẩn cho Developer](#10-quy-trình-git-chuẩn-cho-developer)
+
+**Phần 2: Quản lý & Vận hành (Dành cho Admin)**
+👉 [Xem tài liệu: Quản lý và Bảo trì Hệ thống (`admin_management.md`)](./admin_management.md)
+*(Bao gồm: Thêm server mới, Thêm dự án mới, Câu hỏi thường gặp...)*
+
+**Phần 3: Quy trình Git (Dành cho Developer)**
+👉 [Xem tài liệu: Quy trình Git chuẩn cho Developer (`developer_git_workflow.md`)](./developer_git_workflow.md)
+*(Hướng dẫn thao tác Git an toàn chống conflict cho dev)*
 
 ---
 
@@ -136,7 +140,7 @@ hoặc
 | **Organization Secret** | Tạo 1 lần, dùng cho nhiều repo | Free plan: chỉ repo **public** mới truy cập được    | Org có **paid plan** hoặc chỉ dùng repo public |
 | **Repository Secret**   | Luôn hoạt động ở mọi plan      | Phải tạo riêng cho **từng repo**                     | Free plan với repo **private**      |
 
-> ⚠️ **LƯU Ý QUAN TRỌNG**: GitHub **Free plan** KHÔNG cho phép repo private truy cập Organization Secrets. Nếu org đang dùng Free plan và repo là private, **BẮT BUỘC** phải dùng **Repository Secret**.
+> ⚠️ **LƯU Ý QUAN TRỌNG**: GitHub **Free plan** KHÔNG cho phép repo private truy cập Organization Secrets. Nếu org đang dùng Free plan và repo là private, **BẮT bắt buộc phải dùng **Repository Secret**.
 
 ---
 
@@ -317,212 +321,4 @@ Trang web sẽ có Basic Auth (phải nhập username/password):
 URL: https://<domain>/client/github_deploy/template_jline_html/
 Username: (do developer khai báo trong deploy-config.json)
 Password: (do developer khai báo trong deploy-config.json)
-```
-
----
-
-## 6. Thêm server mới
-
-Nếu có thêm server FTP mới (ví dụ: `SERVER_B`), chỉ cần tạo thêm Secret:
-
-| Secret Name        | Giá trị                                      |
-| ------------------ | --------------------------------------------- |
-| `SERVER_B_CONFIG`  | JSON chứa thông tin FTP của server B           |
-
-Developer sẽ thay đổi `"server": "SERVER_B"` trong `deploy-config.json` để deploy sang server mới.
-
-**Ví dụ:**
-
-```json
-{
-  "host": "203.100.50.10",
-  "user": "user_server_b",
-  "pass": "password_server_b",
-  "ftp_dir": "./public_html/projects",
-  "root_path": "/home/user_b/public_html/projects"
-}
-```
-
-> 💡 **Quy tắc đặt tên**: Tên Secret luôn là `<TÊN_SERVER>_CONFIG` (viết HOA). Ví dụ: `SERVER_B` → `SERVER_B_CONFIG`, `STAGING` → `STAGING_CONFIG`.
-
----
-
-## 7. Thêm dự án mới (repo mới)
-
-Khi developer tạo repo mới cần deploy, bạn cần:
-
-### Nếu dùng Organization Secret (paid plan)
-
-✅ **Không cần làm gì thêm** — Secret đã có sẵn cho tất cả repo (hoặc repo đã được chọn).
-
-Nếu Repository access là **"Selected repositories"**:
-1. Vào Organization Settings → Secrets → Actions
-2. Nhấn **Edit** bên cạnh Secret (ví dụ: `SERVER_A_CONFIG`)
-3. Thêm repo mới vào danh sách **Selected repositories**
-4. Nhấn **Update secret**
-
-### Nếu dùng Repository Secret (free plan)
-
-Cần tạo Secret cho repo mới:
-
-1. Vào `https://github.com/<org>/<repo-mới>/settings/secrets/actions`
-2. Nhấn **"New repository secret"**
-3. Name: `SERVER_A_CONFIG`
-4. Value: paste giá trị JSON (giống các repo khác nếu cùng server)
-5. Nhấn **"Add secret"**
-
----
-
-## 8. Quản lý và bảo trì
-
-### 8.1. Đổi mật khẩu FTP
-
-Khi cần đổi mật khẩu FTP server:
-
-1. Đổi mật khẩu trên hosting/cPanel
-2. Cập nhật GitHub Secret:
-   - Vào Organization/Repository Settings → Secrets
-   - Nhấn **Edit** bên cạnh Secret
-   - Sửa trường `"pass"` trong JSON
-   - Nhấn **Update secret**
-3. Chạy lại workflow hoặc push commit mới để kiểm tra
-
-### 8.2. Xóa dự án khỏi server
-
-1. Dùng FTP client (FileZilla) xóa thư mục dự án trên server
-   - Ví dụ: xóa `github_deploy/template_jline_html/`
-2. (Tùy chọn) Xóa hoặc disable workflow trong repo GitHub
-
-### 8.3. Reset deploy (deploy lại từ đầu)
-
-Nếu dự án bị lỗi trên server và muốn deploy lại hoàn toàn:
-
-1. Dùng FTP client xóa **toàn bộ** thư mục dự án (ví dụ: `template_jline_html/`)
-2. Vào GitHub → tab Actions → nhấn **"Run workflow"** (workflow_dispatch)
-3. Hoặc push một commit mới lên `main`
-4. Script sẽ tự nhận là deploy lần đầu và setup lại toàn bộ
-
-### 8.4. Xem danh sách Secret hiện có
-
-- **Organization Secrets**: `https://github.com/organizations/<org>/settings/secrets/actions`
-- **Repository Secrets**: `https://github.com/<org>/<repo>/settings/secrets/actions`
-
-> ⚠️ **Lưu ý**: GitHub **không hiển thị** giá trị Secret sau khi tạo. Nếu quên, bạn phải tạo lại (Update Secret).
-
----
-
-## 9. Câu hỏi thường gặp
-
-### Q: Deploy thất bại, báo "Không tìm thấy Secret cho server"?
-
-**A**: Secret chưa được tạo hoặc tên sai.
-- Kiểm tra tên Secret phải khớp: `<TÊN_SERVER>_CONFIG` (viết HOA)
-- Nếu dùng Organization Secret: kiểm tra Repository access
-- Nếu repo private + Free plan: phải dùng Repository Secret
-
-### Q: Deploy thất bại, báo lỗi kết nối FTP?
-
-**A**: Kiểm tra thông tin FTP trong Secret:
-- `host` có đúng không?
-- `user` và `pass` có đúng không?
-- Server có chặn IP không? (GitHub Actions dùng IP động)
-
-### Q: Hai repo có thể deploy vào cùng thư mục không?
-
-**A**: **KHÔNG**. Hệ thống có lớp bảo mật `.repo_lock` ngăn việc này. Mỗi thư mục trên server chỉ thuộc về **một repo duy nhất**. Nếu repo khác cố deploy vào, sẽ bị chặn với thông báo:
-```
-❌ CẢNH BÁO BẢO MẬT: Thư mục [...] đang thuộc về dự án [...]. HỦY DEPLOY ĐỂ TRÁNH GHI ĐÈ!
-```
-
-### Q: Developer có thể xem được mật khẩu FTP không?
-
-**A**: **KHÔNG**. GitHub Secrets được mã hóa và không hiển thị trong log. Developer chỉ cần khai báo tên server trong `deploy-config.json`, không cần biết thông tin FTP.
-
-### Q: Tôi có thể dùng FTPS (FTP over TLS) không?
-
-**A**: Hiện tại script kết nối FTP không mã hóa (`secure: false`). Nếu server hỗ trợ FTPS, cần sửa file `.github/scripts/deploy.cjs` để bật `secure: true`.
-
-### Q: Có cách nào kiểm tra Secret đã đúng chưa mà không cần push code?
-
-**A**: Có. Vào repo → tab **Actions** → chọn workflow → nhấn nút **"Run workflow"** để chạy thủ công mà không cần push commit.
-
----
-
-## 10. Quy trình Git chuẩn cho Developer
-
-Để hạn chế tối đa tình trạng "đụng" code (conflict), ghi đè file của người khác, hoặc gây lỗi hệ thống deploy tự động, các developer **bắt buộc** tuân thủ quy trình Git sau:
-
-### 10.1. Nguyên tắc cốt lõi
-1. **KHÔNG BAO GIỜ** code và push thẳng lên nhánh `main` (trừ khi làm việc độc lập 1 mình dự án nhỏ).
-2. **LUÔN LUÔN** pull code mới nhất về trước khi bắt đầu code tính năng mới.
-3. **LUÔN LUÔN** kiểm tra kỹ các file thay đổi (bằng lệnh `git status` hoặc công cụ của IDE) trước khi `git add` và `commit`.
-
-### 10.2. Quy trình làm việc an toàn (Workflow chuẩn)
-
-**✅ Bước 1: Cập nhật code mới nhất từ team**
-Trước khi code bất cứ tính năng nào, phải đảm bảo code trên máy mình là mới nhất.
-```bash
-git checkout main
-git pull origin main
-```
-
-**✅ Bước 2: Tạo nhánh riêng cho công việc**
-Tạo một nhánh mới từ `main` để làm việc. Đặt tên nhánh rõ ràng theo chức năng hoặc tên người làm.
-- Ví dụ: `feature/login`, `fix/header-css`, `dev-hiep-homepage`
-```bash
-git checkout -b feature/ten-chuc-nang
-```
-
-**✅ Bước 3: Code và Commit cẩn thận**
-Làm việc trên nhánh vừa tạo. **Chỉ `git add` những file mình thực sự sửa chữa**.
-```bash
-git status
-git add file-da-sua.html assets/css/style.css
-git commit -m "feat: cập nhật giao diện header"
-```
-> 💡 *Mẹo:* Hạn chế dùng `git add .` nếu bạn không chắc chắn 100% mình đã sửa những file nào, để tránh đưa file rác hoặc file cấu hình cá nhân lên server.
-
-**✅ Bước 4: Cập nhật lại nhánh `main` (Xử lý conflict cục bộ)**
-Trong lúc bạn đang code ở nhánh của mình, có thể người khác đã push code lên `main`. Để tránh conflict lúc merge:
-```bash
-git checkout main
-git pull origin main
-git checkout feature/ten-chuc-nang
-git merge main
-```
-*(Lúc này, nếu có conflict, bạn sẽ tự xử lý an toàn ngay trên máy của mình. Ổn thỏa mới đi tiếp).*
-
-**✅ Bước 5: Push nhánh lên GitHub và tạo Pull Request (PR)**
-Sau khi kiểm tra kỹ lưỡng, push nhánh của bạn lên GitHub:
-```bash
-git push origin feature/ten-chuc-nang
-```
-- Lên web GitHub, tạo **Pull Request** từ nhánh của bạn vào nhánh `main`.
-- Nếu có thể, nhờ đồng đội review code.
-- Merge PR vào `main`. Lúc này GitHub Actions mới tự động kích hoạt deploy lên server một cách an toàn nhất!
-- Xóa nhánh sau khi merge xong để repo gọn gàng.
-
-### 10.3. "Cứu hộ" nhanh khi gặp lỗi phổ biến
-
-**Trường hợp 1: Lỡ viết code trực tiếp trên `main` mà chưa commit, lúc `git pull` bị lỗi báo đè file:**
-```bash
-# 1. Cất code đang làm dở đi vào kho tạm
-git stash
-
-# 2. Giờ nhánh đã sạch, lấy code mới trên server về
-git pull origin main
-
-# 3. Lấy code đang làm dở ở kho tạm ra lại
-git stash pop
-```
-*(Nếu lúc pop ra báo conflict, bạn chỉ việc sửa file bị conflict, rồi lưu lại và commit)*
-
-**Trường hợp 2: Lỡ commit nhầm vào `main` nhưng chưa push:**
-```bash
-# Lùi lại 1 commit nhưng giữ nguyên file đã sửa
-git reset --soft HEAD~1
-
-# Tạo nhánh mới và mang code theo
-git checkout -b feature/nhanh-moi
-git commit -m "messsage"
 ```
