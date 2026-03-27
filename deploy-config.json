@@ -1,5 +1,5 @@
 {
-  "server": "SERVER_A",
+  "server": "JLWEB",
   "project_dir": "template_jline_html",
   "source_folder": "public",
   "has_build_step": true,

@@ -93,7 +93,8 @@ async function connectWithRetry(client, serverInfo, maxRetries = 3) {
                 host: serverInfo.host,
                 user: serverInfo.user,
                 password: serverInfo.pass,
-                secure: false,
+                secure: true,
+                secureOptions: { rejectUnauthorized: false },
             });
             console.log(`✅ Kết nối FTP thành công: ${serverInfo.host}`);
             return;
@@ -224,7 +225,7 @@ async function runDeploy() {
             // 3. Tạo .htaccess (bảo vệ truy cập)
             console.log('🔐 Tạo .htaccess...');
             const htaccessContent = [
-                '<Files ~ "^\\.(htaccess|htpasswd)$">',
+                '<Files ~ "^\\.(htaccess|htpasswd|repo_lock)$">',
                 'Deny from all',
                 '</Files>',
                 'AuthType Basic',
@@ -252,6 +253,25 @@ async function runDeploy() {
 
             // Quay về FTP root trước khi thao tác tiếp
             await client.cd(ftpRoot);
+
+            // 🔄 Re-sync .htpasswd & .htaccess (đồng bộ khi dev đổi credentials)
+            console.log('🔐 Đồng bộ .htpasswd & .htaccess...');
+            const hashedPass = crypt(config.basic_auth.password);
+            fs.writeFileSync('/tmp/.htpasswd', `${config.basic_auth.username}:${hashedPass}`);
+            await client.uploadFrom('/tmp/.htpasswd', `${targetDir}/.htpasswd`);
+
+            const htaccessContent = [
+                '<Files ~ "^\\.(htaccess|htpasswd|repo_lock)$">',
+                'Deny from all',
+                '</Files>',
+                'AuthType Basic',
+                'AuthName "Restricted Area"',
+                `AuthUserFile ${serverInfo.root_path}/${config.project_dir}/.htpasswd`,
+                'Require valid-user',
+            ].join('\n');
+            fs.writeFileSync('/tmp/.htaccess', htaccessContent);
+            await client.uploadFrom('/tmp/.htaccess', `${targetDir}/.htaccess`);
+            console.log('✅ .htpasswd & .htaccess đã đồng bộ.');
 
             // Kiểm tra có đủ commit để diff không
             let diffOutput = '';

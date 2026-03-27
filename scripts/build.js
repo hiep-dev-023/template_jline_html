@@ -263,7 +263,7 @@ async function compileScssFile(filePath) {
     ensureDir(dirname(cssPath));
 
     writeFileSync(cssPath, processed.css, 'utf8');
-    if (processed.map) {
+    if (isWatch && processed.map) {
       writeFileSync(mapPath, processed.map.toString(), 'utf8');
     }
     console.log(`[scss] ${norm(rel)} → ${basename(cssPath)}`);
@@ -379,7 +379,7 @@ function buildJs(changedFile) {
 // ─────────────────────────────────────────────
 function buildVendor(changedFile) {
   const destDir = resolve(DIST, 'assets', 'vendor');
-  const vendorExts = ['.php', '.png', '.jpg', '.scss', '.css', '.js', '.svg', '.woff', '.woff2', '.ttf', '.eot'];
+  const vendorExts = ['.png', '.jpg', '.scss', '.css', '.js', '.svg', '.woff', '.woff2', '.ttf', '.eot'];
 
   if (changedFile) {
     const rel = relative(VENDOR_DIR, changedFile);

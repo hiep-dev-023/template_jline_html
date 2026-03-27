@@ -10,9 +10,9 @@ js: ['common','about']
 page: about
 ---
 <script>
-    if (!window.sessionStorage.getItem("storage_loadding")) {
-        document.documentElement.classList.add("is-loadding");    
-        window.sessionStorage.setItem("storage_loadding", new Date().getTime().toString());    
+    if (!window.sessionStorage.getItem("storage_loading")) {
+        document.documentElement.classList.add("is-loading");    
+        window.sessionStorage.setItem("storage_loading", new Date().getTime().toString());    
     }
 </script>
 <main class="p-about">   
