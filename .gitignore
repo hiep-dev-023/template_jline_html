@@ -5,3 +5,4 @@
 .repo_lock
 .htpasswd
 .htaccess
+.deploy_sha

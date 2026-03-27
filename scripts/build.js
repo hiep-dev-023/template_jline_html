@@ -248,13 +248,13 @@ async function compileScssFile(filePath) {
       url: new URL(`file:///${norm(filePath)}`),
       loadPaths: [SCSS_DIR],
       style: 'expanded',
-      sourceMap: true,
+      sourceMap: isWatch,
     });
 
     // PostCSS processing
     const processed = await postcss(postcssPlugins).process(result.css, {
       from: filePath,
-      map: { inline: false },
+      map: isWatch ? { inline: false } : false,
     });
 
     const rel = relative(SCSS_DIR, filePath);

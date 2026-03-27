@@ -3,6 +3,9 @@ const path = require('path');
 const ftp = require('basic-ftp');
 const { execSync } = require('child_process');
 const crypt = require('apache-crypt');
+const crypto = require('crypto');
+const https = require('https');
+const http = require('http');
 
 // ─────────────────────────────────────────────
 // Utilities
@@ -76,6 +79,158 @@ async function uploadDirectory(client, localDir, remoteDir, ftpRoot) {
     }
 
     console.log(`   📊 Tổng cộng: ${uploadCount} file đã upload.`);
+}
+
+// ─────────────────────────────────────────────
+// ZIP Upload + PHP Extraction (Fast bulk deploy)
+// ─────────────────────────────────────────────
+
+/**
+ * Tạo ZIP từ thư mục local, upload lên FTP, dùng PHP giải nén trên server.
+ * Nhanh hơn ×10-50 lần so với upload từng file qua FTP.
+ * Tự động fallback về uploadDirectory nếu thất bại.
+ */
+async function uploadViaZip(client, localDir, remoteDir, ftpRoot, config, serverInfo) {
+    const zipPath = '/tmp/_deploy_bundle.zip';
+    const token = crypto.randomBytes(16).toString('hex');
+    const phpFilename = `_extract_${token.substring(0, 8)}.php`;
+    const phpRemotePath = `${remoteDir}/${phpFilename}`;
+
+    try {
+        // 1. Tạo ZIP file
+        console.log('📦 Đang nén source thành ZIP...');
+        try { fs.unlinkSync(zipPath); } catch { /* ignore */ }
+        execSync(`cd "${localDir}" && zip -r "${zipPath}" . -x '.*'`, { stdio: 'pipe' });
+        const zipSize = fs.statSync(zipPath).size;
+        console.log(`   📦 ZIP size: ${(zipSize / 1024 / 1024).toFixed(2)} MB`);
+
+        // 2. Upload ZIP
+        console.log('⬆️ Đang upload ZIP lên server...');
+        await client.uploadFrom(zipPath, `${remoteDir}/_deploy_bundle.zip`);
+        console.log('   ✅ Upload ZIP hoàn tất.');
+
+        // 3. Tạo và upload PHP extractor (tự xóa sau khi chạy)
+        const phpContent = `<?php
+// Auto-generated deploy extractor — self-destructs after use
+header('Content-Type: application/json');
+
+if (!isset($_GET['token']) || $_GET['token'] !== '${token}') {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Invalid token']);
+    exit;
+}
+
+$zip = new ZipArchive;
+$zipFile = __DIR__ . '/_deploy_bundle.zip';
+
+if (!file_exists($zipFile)) {
+    echo json_encode(['ok' => false, 'error' => 'ZIP not found']);
+    exit;
+}
+
+if ($zip->open($zipFile) === TRUE) {
+    $zip->extractTo(__DIR__);
+    $count = $zip->numFiles;
+    $zip->close();
+    unlink($zipFile);
+    unlink(__FILE__);
+    echo json_encode(['ok' => true, 'files' => $count]);
+} else {
+    echo json_encode(['ok' => false, 'error' => 'Extract failed']);
+}
+?>`;
+        fs.writeFileSync('/tmp/_extractor.php', phpContent);
+        await client.uploadFrom('/tmp/_extractor.php', phpRemotePath);
+        console.log('   ✅ PHP extractor đã upload.');
+
+        // 4. Gọi PHP qua HTTP để giải nén
+        // Tự derive URL từ config có sẵn (không cần thêm site_url)
+        // host: "ftp.example.com" → domain: "example.com"
+        // root_path: "/home/user/public_html/client/deploy" → web path: "/client/deploy"
+        const domain = serverInfo.host.replace(/^ftp\./i, '');
+        const webPath = serverInfo.root_path.replace(/^.*?\/public_html\/?/, '/');
+        const siteUrl = `https://${domain}${webPath}`;
+        const extractUrl = `${siteUrl}/${config.project_dir}/${phpFilename}?token=${token}`;
+        console.log(`🔗 Gọi PHP extractor: ${domain}${webPath}/${config.project_dir}/${phpFilename}`);
+
+        const result = await httpGet(extractUrl, config.basic_auth);
+        const parsed = JSON.parse(result);
+
+        if (parsed.ok) {
+            console.log(`   ✅ Giải nén thành công: ${parsed.files} files.`);
+        } else {
+            throw new Error(`PHP extraction lỗi: ${parsed.error}`);
+        }
+
+    } catch (err) {
+        console.warn(`⚠️ ZIP deploy thất bại: ${err.message}`);
+        console.log('ℹ️ Fallback: Upload từng file...');
+
+        // Cleanup ZIP + PHP trên server
+        try { await client.remove(`${remoteDir}/_deploy_bundle.zip`); } catch { /* ignore */ }
+        try { await client.remove(phpRemotePath); } catch { /* ignore */ }
+
+        // Fallback
+        await uploadDirectory(client, localDir, remoteDir, ftpRoot);
+    } finally {
+        // Cleanup local
+        try { fs.unlinkSync(zipPath); } catch { /* ignore */ }
+        try { fs.unlinkSync('/tmp/_extractor.php'); } catch { /* ignore */ }
+    }
+}
+
+/**
+ * HTTP GET request với Basic Auth + follow redirects.
+ */
+function httpGet(url, basicAuth, maxRedirects = 5) {
+    return new Promise((resolve, reject) => {
+        if (maxRedirects <= 0) {
+            return reject(new Error('Too many redirects'));
+        }
+
+        const urlObj = new URL(url);
+        const mod = urlObj.protocol === 'https:' ? https : http;
+        const options = {
+            hostname: urlObj.hostname,
+            port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+            path: urlObj.pathname + urlObj.search,
+            method: 'GET',
+            headers: {},
+            // Chấp nhận self-signed cert (staging server)
+            rejectUnauthorized: false,
+        };
+
+        if (basicAuth) {
+            const creds = Buffer.from(`${basicAuth.username}:${basicAuth.password}`).toString('base64');
+            options.headers['Authorization'] = `Basic ${creds}`;
+        }
+
+        const req = mod.request(options, (res) => {
+            // Follow redirects (301, 302, 307, 308)
+            if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location) {
+                const redirectUrl = new URL(res.headers.location, url).toString();
+                console.log(`   ↪️ Redirect → ${redirectUrl}`);
+                return httpGet(redirectUrl, basicAuth, maxRedirects - 1).then(resolve, reject);
+            }
+
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve(data);
+                } else {
+                    reject(new Error(`HTTP ${res.statusCode}: ${data.substring(0, 200)}`));
+                }
+            });
+        });
+
+        req.on('error', reject);
+        req.setTimeout(60000, () => {
+            req.destroy();
+            reject(new Error('HTTP request timeout (60s)'));
+        });
+        req.end();
+    });
 }
 
 // ─────────────────────────────────────────────
@@ -153,6 +308,12 @@ async function runDeploy() {
         process.exit(1);
     }
 
+    // 🛡️ Validate source_folder không chứa path traversal
+    if (/\.\.\/|\.\.\\/.test(config.source_folder)) {
+        console.error(`❌ LỖI: source_folder "${config.source_folder}" chứa path traversal!`);
+        process.exit(1);
+    }
+
     // ─── Kiểm tra Server Secret ───
     if (!process.env.SERVER_SECRET_JSON) {
         console.error(`❌ LỖI: Không tìm thấy Secret cho server [${config.server}].`);
@@ -225,7 +386,7 @@ async function runDeploy() {
             // 3. Tạo .htaccess (bảo vệ truy cập)
             console.log('🔐 Tạo .htaccess...');
             const htaccessContent = [
-                '<Files ~ "^\\.(htaccess|htpasswd|repo_lock)$">',
+                '<Files ~ "^\\.">',
                 'Deny from all',
                 '</Files>',
                 'AuthType Basic',
@@ -236,9 +397,15 @@ async function runDeploy() {
             fs.writeFileSync('/tmp/.htaccess', htaccessContent);
             await client.uploadFrom('/tmp/.htaccess', `${targetDir}/.htaccess`);
 
-            // 4. Upload toàn bộ source (đệ quy)
+            // 4. Upload toàn bộ source (ZIP nhanh hoặc file-by-file fallback)
             console.log(`📤 Upload toàn bộ thư mục ${config.source_folder}/...`);
-            await uploadDirectory(client, config.source_folder, targetDir, ftpRoot);
+            await uploadViaZip(client, config.source_folder, targetDir, ftpRoot, config, serverInfo);
+
+            // 5. Lưu SHA commit đã deploy
+            const currentSha = execSync('git rev-parse HEAD').toString().trim();
+            fs.writeFileSync('/tmp/.deploy_sha', currentSha);
+            await client.uploadFrom('/tmp/.deploy_sha', `${targetDir}/.deploy_sha`);
+            console.log(`📌 Đã lưu SHA deploy: ${currentSha.substring(0, 8)}`);
 
             console.log('');
             console.log('✅ Hoàn thành Deploy lần đầu!');
@@ -261,7 +428,7 @@ async function runDeploy() {
             await client.uploadFrom('/tmp/.htpasswd', `${targetDir}/.htpasswd`);
 
             const htaccessContent = [
-                '<Files ~ "^\\.(htaccess|htpasswd|repo_lock)$">',
+                '<Files ~ "^\\.">',
                 'Deny from all',
                 '</Files>',
                 'AuthType Basic',
@@ -273,34 +440,73 @@ async function runDeploy() {
             await client.uploadFrom('/tmp/.htaccess', `${targetDir}/.htaccess`);
             console.log('✅ .htpasswd & .htaccess đã đồng bộ.');
 
-            // Kiểm tra có đủ commit để diff không
-            let diffOutput = '';
+            // 📌 Đọc SHA deploy lần trước từ server
+            let lastDeployedSha = '';
             try {
-                const commitCount = execSync('git rev-list --count HEAD').toString().trim();
-                if (parseInt(commitCount, 10) < 2) {
-                    console.log('ℹ️ Chỉ có 1 commit — không có gì để so sánh.');
-                    console.log('ℹ️ Chuyển sang upload toàn bộ source...');
-                    await uploadDirectory(client, config.source_folder, targetDir, ftpRoot);
-                    console.log('✅ Hoàn thành!');
-                    return;
+                await client.downloadTo('/tmp/.deploy_sha', `${targetDir}/.deploy_sha`);
+                const rawSha = fs.readFileSync('/tmp/.deploy_sha', 'utf8').trim();
+                // 🛡️ Validate SHA là hex thuần (chống shell injection)
+                if (/^[0-9a-f]{40}$/i.test(rawSha)) {
+                    lastDeployedSha = rawSha;
+                    console.log(`📌 SHA deploy trước: ${lastDeployedSha.substring(0, 8)}`);
+                } else {
+                    console.warn('⚠️ .deploy_sha chứa giá trị không hợp lệ — bỏ qua.');
                 }
-                diffOutput = execSync('git diff --name-status HEAD~1 HEAD').toString().trim();
-            } catch (gitErr) {
-                console.error(`⚠️ Git diff lỗi: ${gitErr.message}`);
-                console.log('ℹ️ Fallback: Upload toàn bộ source...');
-                await uploadDirectory(client, config.source_folder, targetDir, ftpRoot);
+            } catch (e) {
+                console.log('ℹ️ Không tìm thấy .deploy_sha — sẽ upload toàn bộ.');
+            }
+
+            const currentSha = execSync('git rev-parse HEAD').toString().trim();
+            console.log(`📌 SHA hiện tại:      ${currentSha.substring(0, 8)}`);
+
+            // Nếu SHA giống nhau → không có gì thay đổi
+            if (lastDeployedSha === currentSha) {
+                console.log('ℹ️ SHA trùng khớp — không có gì cần cập nhật.');
+                return;
+            }
+
+            // Tìm diff giữa SHA cũ và HEAD
+            let diffOutput = '';
+            let needFullUpload = false;
+
+            if (!lastDeployedSha) {
+                // Không có SHA cũ → upload toàn bộ
+                needFullUpload = true;
+            } else {
+                try {
+                    // Kiểm tra SHA cũ còn tồn tại trong lịch sử (phòng force push / rebase)
+                    execSync(`git cat-file -t ${lastDeployedSha}`, { stdio: 'pipe' });
+                    diffOutput = execSync(`git diff --name-status ${lastDeployedSha} HEAD`).toString().trim();
+                } catch (gitErr) {
+                    console.warn(`⚠️ SHA cũ [${lastDeployedSha.substring(0, 8)}] không còn trong lịch sử (force push?).`);
+                    needFullUpload = true;
+                }
+            }
+
+            if (needFullUpload) {
+                console.log('ℹ️ Chuyển sang upload toàn bộ source...');
+                await uploadViaZip(client, config.source_folder, targetDir, ftpRoot, config, serverInfo);
+
+                // Lưu SHA mới
+                fs.writeFileSync('/tmp/.deploy_sha', currentSha);
+                await client.uploadFrom('/tmp/.deploy_sha', `${targetDir}/.deploy_sha`);
+                console.log(`📌 Đã cập nhật SHA deploy: ${currentSha.substring(0, 8)}`);
                 console.log('✅ Hoàn thành!');
                 return;
             }
 
             if (!diffOutput) {
-                console.log('ℹ️ Không có thay đổi nào trong commit mới nhất.');
+                console.log('ℹ️ Không có thay đổi nào giữa 2 SHA.');
+
+                // Vẫn cập nhật SHA để đồng bộ
+                fs.writeFileSync('/tmp/.deploy_sha', currentSha);
+                await client.uploadFrom('/tmp/.deploy_sha', `${targetDir}/.deploy_sha`);
                 return;
             }
 
             // 🛡️ LỚP GIÁP 3: BẢO VỆ FILE HỆ THỐNG
             // Ngăn Dev vô tình xóa .htaccess, .htpasswd, .repo_lock dưới local
-            const PROTECTED_FILES = ['.repo_lock', '.htaccess', '.htpasswd'];
+            const PROTECTED_FILES = ['.repo_lock', '.htaccess', '.htpasswd', '.deploy_sha'];
             const lines = diffOutput.split('\n');
             let uploadCount = 0;
             let deleteCount = 0;
@@ -372,6 +578,11 @@ async function runDeploy() {
                     uploadCount++;
                 }
             }
+
+            // Lưu SHA mới sau khi deploy thành công
+            fs.writeFileSync('/tmp/.deploy_sha', currentSha);
+            await client.uploadFrom('/tmp/.deploy_sha', `${targetDir}/.deploy_sha`);
+            console.log(`📌 Đã cập nhật SHA deploy: ${currentSha.substring(0, 8)}`);
 
             console.log('');
             console.log(`📊 Kết quả: ${uploadCount} upload, ${deleteCount} xóa, ${skipCount} bảo vệ.`);
