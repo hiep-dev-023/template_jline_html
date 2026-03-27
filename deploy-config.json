@@ -5,7 +5,7 @@
   "has_build_step": true,
   "build_command": "npm run build",
   "basic_auth": {
-    "username": "tester",
+    "username": "test",
     "password": "test"
   }
 }
