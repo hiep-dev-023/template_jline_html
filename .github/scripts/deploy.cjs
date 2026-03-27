@@ -483,6 +483,14 @@ async function runDeploy() {
                 }
             }
 
+            // [FIX BUG]: Nếu có build step (src/ -> public/), Gitdiff show sửa file ở src/ 
+            // nhưng script đang upload từ public/ -> không bao giờ match path.
+            // Giải pháp: Có build step thì cứ thay đổi source bất kỳ đâu -> Upload ZIP toàn bộ `source_folder`.
+            if (!needFullUpload && diffOutput && config.has_build_step) {
+                console.log('ℹ️ Dự án có bước Build — thay đổi source sẽ trigger upload toàn bộ mã nguồn Built (siêu nhanh nhờ ZIP).');
+                needFullUpload = true;
+            }
+
             if (needFullUpload) {
                 console.log('ℹ️ Chuyển sang upload toàn bộ source...');
                 await uploadViaZip(client, config.source_folder, targetDir, ftpRoot, config, serverInfo);
