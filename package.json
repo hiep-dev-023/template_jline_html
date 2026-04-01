@@ -6,19 +6,23 @@
   "scripts": {
     "dev": "node scripts/build.js --watch",
     "build": "node scripts/build.js",
-    "clean": "node scripts/clean.js"
+    "clean": "node scripts/clean.js",
+    "link": "node scripts/link.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@prettier/plugin-php": "^0.25.0",
     "autoprefixer": "^10.4.21",
     "browser-sync": "^3.0.3",
     "chokidar": "^4.0.3",
     "cssnano": "^7.0.6",
     "ejs": "^3.1.10",
     "gray-matter": "^4.0.3",
+    "js-beautify": "^1.15.4",
     "postcss": "^8.5.3",
     "postcss-sort-media-queries": "^5.2.0",
+    "prettier": "^3.8.1",
     "sass-embedded": "^1.85.1",
     "sharp": "^0.33.5"
   }

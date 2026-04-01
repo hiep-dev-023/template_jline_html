@@ -8,14 +8,14 @@ vendorjs: ['aos/aos','slick/slick.min']
 css: ['common','about']
 js: ['common','about']
 page: about
+header: 'header_01'
+footer: 'footer_01'
 ---
-<script>
-    if (!window.sessionStorage.getItem("storage_loading")) {
-        document.documentElement.classList.add("is-loading");    
-        window.sessionStorage.setItem("storage_loading", new Date().getTime().toString());    
-    }
-</script>
 <main class="p-about">   
+    
+    <!-- Bạn có thể nhúng Component bất kỳ ở bất kỳ đâu trong trang bằng lệnh includeComponent này! -->
+    <%- includeComponent('sidebar') %>
+
     <div class="c-loading">
         <div class="c-loading__inner">
             <div class="c-loading__content">
@@ -24,5 +24,6 @@ page: about
             </div>
         </div>
     </div>   
-    <h1></h1>
+    <img src="../assets/images/common/img_dummy.webp" alt="">
+    <h1>sdfsdfsdfdfsd</h1>
 </main>

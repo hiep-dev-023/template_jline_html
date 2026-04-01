@@ -1,358 +1,321 @@
-# 📦 Template JLine HTML
+# TAI - Advanced Static Architecture (HTML/PHP)
 
-Template dự án web tĩnh (static site) sử dụng **EJS + SCSS + JavaScript** với hệ thống build tự động và CI/CD deploy lên FTP server.
-
----
-
-## 📋 Mục lục
-
-- [Yêu cầu hệ thống](#-yêu-cầu-hệ-thống)
-- [Cài đặt & Chạy dự án](#-cài-đặt--chạy-dự-án)
-- [Cấu trúc dự án](#-cấu-trúc-dự-án)
-- [Cách thức hoạt động](#-cách-thức-hoạt-động)
-- [Setup Server Deploy (CI/CD)](#-setup-server-deploy-cicd)
-- [Xử lý sự cố](#-xử-lý-sự-cố)
+🌍 **[English](#english)** | **[日本語](#日本語)** | **[Tiếng Việt](#tiếng-việt)**
 
 ---
 
-## 💻 Yêu cầu hệ thống
+<h2 id="english">🇬🇧 English</h2>
 
-| Công cụ  | Phiên bản tối thiểu |
-| -------- | -------------------- |
-| Node.js  | v20 trở lên          |
-| npm      | v9 trở lên           |
-| Git      | v2 trở lên           |
+A battle-tested, high-performance static site generator built on top of Node.js. Designed for cross-platform compatibility (Windows, macOS, Linux), it features a blazing-fast build pipeline parsing **EJS**, **SCSS**, and Vanilla **JS** into a pristine, production-ready `public/` directory within milliseconds.
 
----
+### ✨ Core Features
 
-## 🚀 Cài đặt & Chạy dự án
+- **Dual Output Modes**: Compile to `.html` or `.php`. Fully automated `<?php include ?>` extraction for components.
+- **Deep Component Nesting**: Support for infinitely nested component structures (`components/headers/main.ejs` -> `public/components/headers/main.php`).
+- **Frontmatter Routing**: Define Layouts, Headers, Footers, Meta tags, and Vendor CSS/JS directly within your EJS file's Frontmatter data.
+- **AST-Aware Auto Formatting**: A state-of-the-art 2-Phase formatting pipeline. Uses `js-beautify` to strictly align the HTML DOM structure, and `Prettier` (PHP Plugin) to securely format internal PHP AST logic. The output code is pixel-perfect and highly readable.
+- **Next-Gen Image Optimization**: Auto-converts `.jpg` and `.png` to optimized `.webp` formats during build via Sharp.
+- **100% OS-Agnostic**: Implements native Node.js FS APIs instead of bash commands, eliminating cross-platform path configuration issues.
+- **Hot Reloading**: Lightning-fast `browser-sync` live reloading seamlessly proxied over local environments (MAMP, XAMPP, Laragon, Valet).
 
-### 1. Clone dự án
+### 🚀 Quick Start
 
-```bash
-git clone https://github.com/hiep-dev-023/template_jline_html.git
-cd template_jline_html
-```
+#### 1. Requirements
+- **Node.js**: `v16.0.0` or higher.
 
-### 2. Cài đặt dependencies
-
+#### 2. Installation
+Clone the repository and install the dependencies:
 ```bash
 npm install
 ```
 
-### 3. Chạy môi trường phát triển (Development)
+#### 3. Environment Setup
+Rename or copy `.env.example` to `.env` at the root of the project to customize the build outputs:
+```env
+OUTPUT_EXT=.php             # Output extension: .php or .html
+USE_PHP_INCLUDE=true        # Set true to use native PHP component inclusions
+SERVER_TYPE=mamp            # (Optional) Auto-proxy BrowserSync. Options: mamp, xampp, laragon, valet
+PROXY_URL=                  # (Optional) Override exact local proxy URL if needed
+```
 
+#### 4. Available Commands
 ```bash
-npm run dev
+npm run dev    # Start the development server with live reloading
+npm run build  # Run a full production build
+npm run clean  # Clean the public/ output directory
 ```
 
-- Tự động build toàn bộ file EJS, SCSS, JS, images
-- Mở trình duyệt tại **http://localhost:8080**
-- **Hot reload**: Tự động reload khi bạn sửa file trong thư mục `src/`
+### 📂 Project Architecture
 
-### 4. Build sản phẩm (Production)
-
-```bash
-npm run build
+```text
+├── .env                # Core build configurations
+├── scripts/            # Node.js build pipeline scripts
+├── public/             # 📦 Production build output (Auto-generated)
+└── src/                # 🛠️ Source files
+    ├── components/     # Reusable UI partials (header, footer, sidebar, etc.)
+    ├── layouts/        # Global layout wrappers (e.g. _default.ejs)
+    └── pages/          # EJS Pages and Assets
+        ├── assets/     # scss/, js/, images/, vendor/
+        ├── index.ejs   # Maps to -> public/index.php
+        └── about/      # Maps to -> public/about/index.php
 ```
 
-- Build một lần, xuất kết quả vào thư mục `public/`
-- Dùng khi cần kiểm tra kết quả build trước khi push
+### 🛠️ Usage Guide
 
-### 5. Dọn dẹp thư mục build
-
-```bash
-npm run clean
-```
-
-- Xóa toàn bộ thư mục `public/` (output đã build)
-
----
-
-## 📁 Cấu trúc dự án
-
-```
-template_jline_html/
-├── src/                          ← 📝 SOURCE CODE (viết code ở đây)
-│   ├── layouts/                  ← Layout dùng chung
-│   │   ├── _default.ejs          ← Layout chính (HTML wrapper)
-│   │   ├── _header.ejs           ← Header component
-│   │   └── _footer.ejs           ← Footer component
-│   ├── assets/                   ← Tài nguyên tĩnh
-│   │   ├── scss/                 ← File SCSS (style)
-│   │   ├── js/                   ← File JavaScript
-│   │   ├── images/               ← Hình ảnh gốc (tự chuyển sang WebP)
-│   │   └── vendor/               ← Thư viện bên ngoài (jQuery, Slick, AOS...)
-│   ├── index.ejs                 ← Trang chủ
-│   ├── sample.ejs                ← Trang mẫu
-│   └── about/                    ← Trang con
-│       └── index.ejs
-│
-├── public/                       ← 📤 OUTPUT (tự động sinh, KHÔNG sửa tay)
-│   ├── index.html                ← HTML đã compile từ EJS
-│   ├── assets/
-│   │   ├── css/                  ← CSS đã compile từ SCSS
-│   │   ├── js/                   ← JS đã xử lý
-│   │   └── images/               ← Hình ảnh đã tối ưu (WebP)
-│   └── about/
-│       └── index.html
-│
-├── scripts/                      ← 🔧 Build scripts
-│   ├── build.js                  ← Script build chính
-│   └── clean.js                  ← Script dọn dẹp
-│
-├── .github/                      ← ⚙️ CI/CD
-│   ├── workflows/
-│   │   └── deploy.yml            ← GitHub Actions workflow
-│   └── scripts/
-│       └── deploy.cjs            ← Script deploy lên FTP
-│
-├── deploy-config.json            ← 🔑 Cấu hình deploy cho dự án
-├── package.json                  ← Dependencies & scripts
-└── .gitignore
-```
-
----
-
-## ⚙️ Cách thức hoạt động
-
-### Quy trình Build
-
-```
-src/ (EJS + SCSS + JS + Images)
-          │
-          ▼
-    scripts/build.js
-          │
-          ▼
-public/ (HTML + CSS + JS + WebP)
-```
-
-| Loại file     | Xử lý                                                         |
-| ------------- | -------------------------------------------------------------- |
-| `.ejs`        | Compile thành `.html`, hỗ trợ layout và include component     |
-| `.scss`       | Compile thành `.css`, tự động thêm prefix, nén (minify)       |
-| `.js`         | Copy và xử lý                                                 |
-| Hình ảnh      | Tự động chuyển đổi `.jpg/.png` → `.webp` để tối ưu dung lượng |
-| `vendor/`     | Copy nguyên bản các thư viện bên ngoài                         |
-
-### Hệ thống Layout (EJS)
-
-Mỗi trang EJS sử dụng **front matter** (khối `---`) ở đầu file để khai báo metadata. Layout `_default.ejs` sẽ đọc các trường này để tự động sinh thẻ `<title>`, `<meta>`, `<link>`, `<script>`.
-
-#### Ví dụ đầy đủ (trang chủ `src/index.ejs`)
+#### 1. Creating Pages & Frontmatter
+Pages must be placed directly inside the `src/pages/` directory. Use YAML frontmatter at the top of the file to declare the layout and assets.
 
 ```ejs
 ---
 layout: _default
-title: Trang chủ
-description: Mô tả trang chủ cho SEO
-keyword: từ khóa 1, từ khóa 2
-vendorcss: ['aos/aos','slick/slick']
-vendorjs: ['aos/aos','slick/slick.min']
-css: ['common','top']
-js: ['common','top']
-page: top
+title: About Us Homepage
+description: This is an inner about page.
+css: ['common', 'about']
+js: ['common']
+header: 'headers/header_01'
+footer: 'footers/footer_01'
 ---
-
-<main class="p-top">
-    <h1>Nội dung trang</h1>
-</main>
-```
-
-#### Ví dụ trang con (`src/about/index.ejs`)
-
-```ejs
----
-layout: _default
-title: about
-description: description About
-keyword: keyword About
-vendorcss: ['aos/aos','slick/slick']
-vendorjs: ['aos/aos','slick/slick.min']
-css: ['common','about']
-js: ['common','about']
-page: about
----
-
 <main class="p-about">
-    <h1>Nội dung trang About</h1>
+    <h1>Hello World</h1>
+    
+    <!-- Include a component dynamically from anywhere inside the body! -->
+    <%- includeComponent('sidebar') %>
 </main>
 ```
 
-#### Bảng giải thích các trường Front Matter
+#### 2. Creating Components
+Place your reusable UI components inside `src/components/`. All component files **must start with an underscore `_`** (e.g., `_sidebar.ejs`, `headers/_header_01.ejs`).
 
-| Trường       | Bắt buộc | Kiểu dữ liệu | Mô tả                                                                                                |
-| ------------ | -------- | -------------- | ----------------------------------------------------------------------------------------------------- |
-| `layout`     | ✅       | `string`       | Layout sử dụng — tương ứng file trong `src/layouts/` (ví dụ: `_default` → `_default.ejs`)             |
-| `title`      | ✅       | `string`       | Tiêu đề trang, hiển thị trên tab trình duyệt và thẻ `<meta og:title>`                                |
-| `description`| ❌       | `string`       | Mô tả trang cho SEO — sinh ra thẻ `<meta name="description">` và `<meta og:description>`             |
-| `keyword`    | ❌       | `string`       | Từ khóa SEO — sinh ra thẻ `<meta name="keywords">`                                                   |
-| `vendorcss`  | ❌       | `array`        | Danh sách file CSS thư viện ngoài cần load, đường dẫn tương đối từ `src/assets/vendor/` (không cần đuôi `.css`) |
-| `vendorjs`   | ❌       | `array`        | Danh sách file JS thư viện ngoài cần load, đường dẫn tương đối từ `src/assets/vendor/` (không cần đuôi `.js`)   |
-| `css`        | ❌       | `array`        | Danh sách file CSS riêng cho trang, đường dẫn tương đối từ `src/assets/scss/` (không cần đuôi `.css`)            |
-| `js`         | ❌       | `array`        | Danh sách file JS riêng cho trang, đường dẫn tương đối từ `src/assets/js/` (không cần đuôi `.js`)               |
-| `page`       | ❌       | `string`       | Tên trang, dùng để phân biệt class CSS trên `<body>` hoặc logic trong layout                          |
+The build pipeline will automatically recursively transpile these into `public/components/*` and map all paths mathematically based on directory depth.
 
-#### Thứ tự load trong HTML (sinh bởi `_default.ejs`)
+#### 3. Assets Management (SCSS, JS, Images)
+Place your raw assets inside `src/pages/assets/`.
+- **SCSS**: Files not prefixed with an underscore (e.g., `common.scss`) will compile into `public/assets/css/common.css`.
+- **Images**: `.jpg` and `.png` will be compressed into `.webp` automatically. Place them in `src/pages/assets/images/`.
 
-```
-<head>
-  ├── <meta> tags (title, description, keyword, og:*)
-  ├── <link> vendorcss   ← CSS thư viện (AOS, Slick...)
-  └── <link> css         ← CSS riêng của trang (common, top...)
-</head>
-<body>
-  ├── Header (_header.ejs)
-  ├── Nội dung trang (contents)
-  ├── Footer (_footer.ejs)
-  ├── <script> jQuery     ← Luôn load jQuery trước
-  ├── <script> cookie.js  ← Luôn load cookie.js
-  ├── <script> vendorjs   ← JS thư viện (AOS, Slick...)
-  └── <script> js         ← JS riêng của trang (common, top...)
-</body>
+In your HTML/PHP files, always use the relative `assetsDir` variable to ensure deeply nested pages locate the assets correctly:
+```html
+<img src="<%= assetsDir %>assets/images/common/logo.webp" alt="Logo">
 ```
 
-> **💡 Lưu ý**: jQuery (`vendor/jquery/jquery-3.5.1.min.js`) và `cookie.js` được layout **tự động load** cho mọi trang, không cần khai báo trong front matter.
+### ⚙️ How Formatting Works
+This template resolves the notorious "broken indentation" problem associated with compiling `<% %>` EJS templating logic mixing HTML and PHP.
+1. Our customized `<% ... -%>` compiler strips invisible logical blank lines gracefully.
+2. The final build string passes through **js-beautify**, reconstructing the DOM elements mathematically.
+3. If compiling to `.php`, the code routes into **Prettier**, which fine-tunes the indentation inside the `<?php ... ?>` blocks to match the exact depth of the HTML element they are nested inside.
+
+If you don't need PHP formatting overhead, simply set `OUTPUT_EXT=.html` and `USE_PHP_INCLUDE=false` in the `.env` file!
+
+*Built with ❤️ for High-Performance Architectures.*
+
+<br><br>
 
 ---
 
-## 🚀 Setup Server Deploy (CI/CD)
+<h2 id="日本語">🇯🇵 日本語</h2>
 
-Hệ thống tự động deploy code lên FTP server mỗi khi push code lên nhánh `main`.
+Node.js上で構築された高速かつ堅牢な静的サイトジェネレーターです。クロスプラットフォーム（Windows、macOS、Linux）対応で設計されており、**EJS**、**SCSS**（Dart Sass）、および**Vanilla JS**をミリ秒単位でビルドし、プロダクションレディな`public/`ディレクトリを出力します。
 
-### Tổng quan quy trình
+### ✨ 主な機能
 
-```
-Push code lên main
-       │
-       ▼
-GitHub Actions chạy workflow
-       │
-       ├── 1. Cài Node.js & dependencies
-       ├── 2. Build dự án (npm run build)
-       ├── 3. Kết nối FTP server
-       ├── 4. Kiểm tra bảo mật (.repo_lock)
-       └── 5. Upload file lên server
-```
+- **デュアル出力モード**: `.html`または`.php`に出力可能。コンポーネント用の`<?php include ?>`抽出を完全に自動化しています。
+- **深いコンポーネントの入れ子**: コンポーネント構造の深いネスト（例: `components/headers/main.ejs` -> `public/components/headers/main.php`）を無限にサポートします。
+- **Frontmatter（フロントマター）ルーティング**: EJSファイルのFrontmatterデータ内でレイアウト、ヘッダー、フッター、メタタグ、およびベンダーCSS/JSを直接定義します。
+- **AST対応フォーマッタ**: 最先端の2段階フォーマットパイプラインを搭載。`js-beautify`を使用してHTMLのDOM構造を厳密に揃え、`Prettier`（PHPプラグイン）で内部のPHP ASTロジックを安全にフォーマットします。出力コードはピクセルパーフェクトで高可読性を保ちます。
+- **次世代の画像最適化**: ビルド時にSharpライブラリを通じて`.jpg`および`.png`を最適化された`.webp`形式に自動変換します。
+- **100% OS非依存**: Bashコマンドの代わりにネイティブなNode.js API（fs）を実装することで、クロスプラットフォームにおけるパス解決の競合問題を排除しています。
+- **ホットリロード**: ローカル環境（MAMP、XAMPP、Laragon、Valet）上でプロキシを介して高速な`browser-sync`ライブリロードを実現。
 
-### Bước 1: Cấu hình `deploy-config.json`
+### 🚀 クイックスタート
 
-File này nằm ở **gốc dự án**, khai báo thông tin deploy:
+#### 1. 必須要件
+- **Node.js**: `v16.0.0` 以上
 
-```json
-{
-  "server": "SERVER_A",
-  "project_dir": "template_jline_html",
-  "source_folder": "public",
-  "has_build_step": true,
-  "build_command": "npm run build",
-  "basic_auth": {
-    "username": "tester",
-    "password": "mat_khau_test_123"
-  }
-}
-```
-
-| Trường           | Mô tả                                                                                          |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| `server`         | Tên server (dùng để ghép với `_CONFIG` tìm GitHub Secret, ví dụ: `SERVER_A` → `SERVER_A_CONFIG`) |
-| `project_dir`    | Tên thư mục trên server FTP (chỉ cho phép chữ, số, `-`, `_`)                                    |
-| `source_folder`  | Thư mục chứa file cần upload (thường là `public`)                                               |
-| `has_build_step` | `true` nếu dự án cần build trước khi deploy                                                     |
-| `build_command`  | Lệnh build (mặc định: `npm run build`)                                                          |
-| `basic_auth`     | Thông tin đăng nhập Basic Auth bảo vệ trang web                                                 |
-
-### Bước 2: Tạo GitHub Secret cho FTP Server
-
-Vì **GitHub Free plan** không hỗ trợ Organization Secrets cho repo private, nên cần tạo **Repository Secret**.
-
-1. Vào repo trên GitHub → **Settings** → **Secrets and variables** → **Actions**
-2. Nhấn **"New repository secret"**
-3. Đặt tên: `SERVER_A_CONFIG` (ghép từ trường `server` + `_CONFIG`)
-4. Nhập giá trị JSON chứa thông tin FTP:
-
-```json
-{
-  "host": "ftp.example.com",
-  "user": "ftp_username",
-  "pass": "ftp_password",
-  "ftp_dir": "./public_html/client/github_deploy",
-  "root_path": "/home/username/public_html/client/github_deploy"
-}
-```
-
-| Trường      | Mô tả                                                                  |
-| ----------- | ----------------------------------------------------------------------- |
-| `host`      | Địa chỉ FTP server                                                      |
-| `user`      | Tên đăng nhập FTP                                                        |
-| `pass`      | Mật khẩu FTP                                                             |
-| `ftp_dir`   | Đường dẫn **tương đối** đến thư mục chứa dự án trên FTP                 |
-| `root_path` | Đường dẫn **tuyệt đối** trên server (dùng cho `.htpasswd` trong Apache)  |
-
-> ⚠️ **Lưu ý**: `ftp_dir` và `root_path` trỏ đến **thư mục cha** chứa các dự án, KHÔNG bao gồm tên `project_dir`. Script sẽ tự thêm `project_dir` vào đường dẫn.
-
-### Bước 3: Push code và kiểm tra
-
+#### 2. インストール
+リポジトリをクローンし、依存関係をインストールします。
 ```bash
-git add .
-git commit -m "Deploy lần đầu"
-git push origin main
+npm install
 ```
 
-Sau khi push:
-1. Vào tab **Actions** trên GitHub để xem tiến trình
-2. Workflow sẽ tự động build và deploy
+#### 3. 環境設定
+出力内容をカスタマイズするには、プロジェクトのルートディレクトリで`.env.example`を`.env`にリネームして以下の設定を行います。
+```env
+OUTPUT_EXT=php             # 出力ファイルの拡張子: .php または .html
+USE_PHP_INCLUDE=true       # trueの場合、コンポーネントのインクルードに <?php include ?> を使用します
+SERVER_TYPE=mamp           # ローカルサーバーの種類（mamp, xampp, laragon, valet）
+WEB_ROOT=                  # Webルートの絶対パス（例: D:\laragon\www）
+PROXY_URL=                 # 固定プロキシURLが存在する場合に設定
+```
 
-### Chế độ Deploy
+#### 4. コマンド一覧
+```bash
+npm run dev    # ライブリロード付きの開発サーバーを起動します
+npm run build  # 本番用のクリーンビルドを実行します
+npm run clean  # public/ フォルダを一掃します
+```
 
-| Chế độ        | Khi nào                                        | Hành vi                                                                     |
-| ------------- | ---------------------------------------------- | --------------------------------------------------------------------------- |
-| **Lần đầu**   | Thư mục `project_dir` chưa tồn tại trên server | Tạo thư mục, upload toàn bộ, setup `.htaccess`, `.htpasswd`, `.repo_lock`   |
-| **Cập nhật**   | Đã deploy trước đó                              | Chỉ upload file **thay đổi** và xóa file **đã xóa** (dựa trên `git diff`)   |
+### 📂 プロジェクト構成
 
-### Hệ thống bảo mật (3 lớp)
+```text
+├── .env                # コアのビルド設定
+├── scripts/            # Node.jsビルドパイプラインのスクリプト群
+├── public/             # 📦 プロダクション用ビルド出力（自動生成）
+└── src/                # 🛠️ ソースファイル
+    ├── components/     # 再利用可能なUIパーツ（ヘッダー、フッターなど）
+    ├── layouts/        # グローバルレイアウトのラッパー（例: _default.ejs）
+    └── pages/          # EJSページおよびアセット
+        ├── assets/     # scss/, js/, images/, vendor/
+        ├── index.ejs   # -> public/index.php
+        └── about/      # -> public/about/index.php
+```
 
-| Lớp | Tên                   | Mô tả                                                                 |
-| --- | ---------------------- | ---------------------------------------------------------------------- |
-| 🛡️ 1 | Chống Path Traversal  | Chặn `project_dir` chứa `../` để tránh ghi file ra ngoài thư mục cho phép |
-| 🛡️ 2 | Khóa chủ quyền       | File `.repo_lock` ghi tên repo — ngăn repo khác ghi đè nhầm dự án         |
-| 🛡️ 3 | Bảo vệ file hệ thống | Không cho xóa/ghi đè `.htaccess`, `.htpasswd`, `.repo_lock` qua deploy    |
+### 🛠️ 開発ガイド
+
+#### 1. ページとFrontmatterの作成
+ページは必ず`src/pages/`ディレクトリの直下に配置してください。ファイルの先頭にYAMLのFrontmatterを使用して、レイアウトとアセットを宣言します。
+
+```ejs
+---
+layout: _default
+title: About Us ホームページ
+description: 会社案内ページです。
+css: ['common', 'about']
+js: ['common']
+header: 'headers/header_01'
+footer: 'footers/footer_01'
+---
+<main class="p-about">
+    <h1>Hello World</h1>
+    
+    <!-- ここから任意のコンポーネントを動的にインクルードできます -->
+    <%- includeComponent('sidebar') %>
+</main>
+```
+
+#### 2. コンポーネントの作成
+再利用可能なUIコンポーネントは`src/components/`に配置します。すべてのコンポーネントファイル名は**アンダースコア（`_`）で始まる必要があります**（例: `_sidebar.ejs`、`headers/_header_01.ejs`）。
+
+#### 3. アセット管理（SCSS, JS, Images）
+未コンパイルのアセットを`src/pages/assets/`に配置してください。
+- **SCSS**: アンダースコア（`_`）で始まらないファイル（例: `common.scss`）は、独立したファイルとして`public/assets/css/`ディレクトリに出力されます。
+- **画像**: `.jpg`および`.png`は不可逆の`.webp`形式に自動圧縮されます。
+
+HTML/PHPファイル内で画像を呼び出す際は、相対パスを自動解決するため、必ず`assetsDir`変数を使用してください。
+```html
+<img src="<%= assetsDir %>assets/images/common/logo.webp" alt="Logo">
+```
+
+### ⚙️ 自動フォーマッタの仕組み
+このテンプレートは、EJS等のロジックブロック（`<% %>`）によってHTMLとPHPが混在することで発生する「不正なインデント」問題を解決します。
+1. カスタムEJSコンパイラー（`<%- ... -%>`タグ）が、不要な論理空行をエレガントに取り除きます。
+2. その後、ビルドされた文字列は`js-beautify`を通過し、DOM要素が数学的に正しい構造に修正されます。
+3. `php`への出力が有効な場合は、最後にそのファイルが`Prettier`にルーティングされ、`<?php ... ?>`ブロック内のインデントが、外側のHTML要素の深さと正確に一致するように微調整されます。
+
+*高性能なアーキテクチャのために❤️を込めて構築されています。*
+
+<br><br>
 
 ---
 
-## 🔧 Xử lý sự cố
+<h2 id="tiếng-việt">🇻🇳 Tiếng Việt</h2>
 
-### Lỗi "require is not defined in ES module scope"
+Hệ thống Website Tĩnh siêu tốc được xây dựng trên Node.js. Được thiết kế tối ưu trên mọi nền tảng (Windows, macOS, Linux). Nó cung cấp một luồng Build chớp nhoáng, chuyển hóa **EJS**, **SCSS**, và **JS** (Vanilla) thành các file hoàn hảo sẵn sàng trên thư mục `public/` chỉ trong vài mili-giây.
 
-**Nguyên nhân**: `package.json` có `"type": "module"`, file deploy dùng CommonJS.
+### ✨ Tính Năng Cốt Lõi
 
-**Cách sửa**: Đảm bảo file deploy có đuôi `.cjs` (đã sửa: `deploy.cjs`).
+- **Chế Độ Xuất Kép**: Biên dịch ra chuẩn `.html` hoặc `.php`. Cấu trúc nhúng Component thông qua `<?php include ?>` được tự động trích xuất.
+- **Component Đa Tầng**: Hỗ trợ gọi Component từ mọi độ sâu thư mục (`components/headers/main.ejs` -> `public/components/headers/main.php`).
+- **Định Tuyến Frontmatter**: Khai báo Layout, Cấu hình Thẻ Meta, và Danh sách JS/CSS trực tiếp trên phần đầu (Head) của mỗi file EJS.
+- **Auto Format Hiểu DOM (AST)**: Xử lý kiến trúc Code 2 Lớp tân tiến. Dùng `js-beautify` để căn chỉnh lại chính xác kết cấu thẻ DOM, và plugin PHP của `Prettier` nắn chỉnh các thẻ PHP nương theo khối lùi dòng của HTML bên ngoài. HTML/PHP xuất ra sạch bong như in máy.
+- **Tối Ưu Ảnh Thông Minh**: Tự động convert đuôi ảnh `.jpg` / `.png` thành định dạng nhẹ `.webp` bằng thư viện Sharp.
+- **Tương Thích Mọi OS (100% OS-Agnostic)**: Hệ thống sử dụng Node.js FS API gốc để thao tác File thay cho các lệnh Bash, loại bỏ hoàn toàn các lỗi xung đột đường dẫn trên Windows.
+- **Hot Reload Siêu Tốc**: Live reload đỉnh cao tự động proxy web thông qua môi trường dev của riêng bạn (MAMP, XAMPP, Laragon, Valet).
 
-### Lỗi "Không tìm thấy Secret cho server"
+### 🚀 Hướng Dẫn Nhanh
 
-**Nguyên nhân**: GitHub Secret chưa được tạo hoặc visibility sai.
+#### 1. Yêu Cầu
+- **Node.js**: Phiên bản `v16.0.0` trở lên.
 
-**Cách sửa**:
-- Kiểm tra Secret tên `<SERVER>_CONFIG` đã tồn tại
-- Nếu dùng Organization Secret: visibility phải là **"All repositories"** hoặc **"Selected repositories"** (bao gồm repo hiện tại)
-- Nếu repo private trên Free plan: dùng **Repository Secret** thay vì Organization Secret
+#### 2. Cài Đặt
+Copy Source về và chạy cài đặt thư viện:
+```bash
+npm install
+```
 
-### Lỗi "550 No such file or directory"
+#### 3. Cấu Hình Môi Trường
+Đổi tên file `.env.example` thành `.env` nằm ở gốc dự án để setup theo ý bạn:
+```env
+OUTPUT_EXT=php             # Đuôi file xuất ra: php hoặc html
+USE_PHP_INCLUDE=true       # Đặt true để dùng <?php include ?> gọi file component
+SERVER_TYPE=mamp           # Server ảo hóa tích hợp: mamp, xampp, laragon, valet
+WEB_ROOT=                  # Nơi chứa webroot của bạn (VD: D:\laragon\www)
+PROXY_URL=                 # Có thể điền cụ thể localhost URL để Server proxy theo
+```
 
-**Nguyên nhân**: Bug `ensureDir()` thay đổi CWD, gây lồng đường dẫn.
+#### 4. Lệnh Command
+```bash
+npm run dev    # Chạy Watcher mượt mà với Auto-Reload
+npm run build  # Xóa sạch và Build mới 100% lên Production
+npm run clean  # Clean Source code public/
+```
 
-**Cách sửa**: Đã fix — thêm `client.cd(ftpRoot)` sau mỗi `ensureDir()`.
+### 📂 Hiểu Về Cấu Trúc File
 
-### Deploy lại từ đầu
+```text
+├── .env                # Setting chung
+├── scripts/            # Khối thần kinh Build System (Đã Optimize)
+├── public/             # 📦 Thư mục Output cuối cùng (Auto-gen)
+└── src/                # 🛠️ Nơi diễn ra hoạt động Code
+    ├── components/     # Chứa các mảnh UI vụn (header, footer, sidebar...)
+    ├── layouts/        # Chứa Layout sườn (VD: _default.ejs)
+    └── pages/          # Chứa các trang EJS và Assets
+        ├── assets/     # scss/, js/, images/, vendor/
+        ├── index.ejs   # Export -> public/index.php
+        └── about/      # Export -> public/about/index.php
+```
 
-Nếu muốn reset và deploy lại hoàn toàn:
-1. Xóa thư mục `project_dir` trên FTP server
-2. Push một commit mới lên `main`
-3. Script sẽ tự nhận là "deploy lần đầu" và setup lại toàn bộ
+### 🛠️ Hướng Dẫn Sử Dụng Chi Tiết
 
+#### 1. Khởi Tạo Trang và Frontmatter
+Mỗi khi tạo một trang mới tạo trực tiếp trong `src/pages/`. Sử dụng hệ thống YAML Frontmatter ở trên đỉnh dòng 1 để khai báo Layout, Script, và Meta Data.
+
+```ejs
 ---
+layout: _default
+title: Trang About
+description: Trang mô tả công ty
+css: ['common', 'about']
+js: ['common']
+header: 'headers/header_01'
+footer: 'footers/footer_01'
+---
+<main class="p-about">
+    <h1>Hello World</h1>
+    
+    <!-- Lệnh nhúng một Component thần thánh không lo sai Paths -->
+    <%- includeComponent('sidebar') %>
+</main>
+```
 
-## 📄 Giấy phép
+#### 2. Quản Lý Component
+Chỉ đặt Component ở thư mục `src/components/`. Bắt buộc phải thêm **dấu gạch dưới `_` ở đầu file** (Ví dụ: `_sidebar.ejs`, `headers/_header_01.ejs`).
 
-ISC License
+Bộ Build sẽ tự động tìm kiếm sâu vào tận trong các folder con, dịch chúng thành mã PHP và xuất riêng biệt ra `public/components/*`.
+
+#### 3. Quản Lý Tệp (Assets)
+Tất cả tài nguyên tĩnh bỏ hết vào `src/pages/assets/`.
+- **SCSS**: Nếu file scss không bắt đầu bằng dấu ngắt `_`, nó sẽ tự nhận đó là File chính cấp 1 và build tự động ra `public/assets/css/`.
+- **Images**: Ảnh đuôi JPG/PNG sẽ bị bắt convert gắt gao sang dạng WebP siêu nhẹ.
+
+Quan trọng: Khi code bên trong HTML, hãy luôn thêm biến `<%= assetsDir %>` để đường dẫn luôn trỏ về gốc dự án chuẩn xác, bất chấp độ sâu của Folder chứa trang:
+```html
+<img src="<%= assetsDir %>assets/images/common/logo.webp" alt="Logo">
+```
+
+### ⚙️ Cơ Chế Làm Sạch Mã Nguồn (Auto-Formatter)
+Dự án được kết hợp Thuật toán xử lý lùi dòng tiên tiến giúp ngăn chặn hệ quả phình trướng lề trống của EJS.
+1. Bộ biên dịch chèn thẻ ngầm `<% ... -%>` dọn sạch rác tàn dư ngắt dòng của JS logic.
+2. Mã thô sau đó được **js-beautify** kéo nắn lại cấu trúc ngang dọc DOM theo hệ toán học.
+3. Cuối cùng, nếu xuất PHP, **Prettier** sẽ chui vào sâu từng hàm `<?php include ?>` để vi chỉnh lại lề của nó khít với thẻ div cha bao quanh nó ở ngoài cùng.
+
+*Được thiết kế với ❤️ dành riêng cho những Developer Tối Giản, Hiện Đại.*

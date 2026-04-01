@@ -11,30 +11,44 @@
   <meta property="og:url" content>
   <meta property="og:image" content>
   <meta property="og:site_name" content="">
-  <meta property="og:description" content="<% if(file.data.description){ %><%= file.data.description %><% }else{%><%= "" %><% }%>">
-  <meta name="description" content="<% if(file.data.description){ %><%= file.data.description %><% }else{%><%= "" %><% }%>">
-  <meta name="keywords" content="<% if(file.data.keyword){ %><%= file.data.keyword %><% }else{%><%= "" %><% }%>">
+  <meta property="og:description" content="<% if(file.data.description){ %><%= file.data.description %><% }else{%><%= "" %><% }-%>">
+  <meta name="description" content="<% if(file.data.description){ %><%= file.data.description %><% }else{%><%= "" %><% }-%>">
+  <meta name="keywords" content="<% if(file.data.keyword){ %><%= file.data.keyword %><% }else{%><%= "" %><% }-%>">
   <link rel="shortcut icon" type="image/x-icon" href="<%= assetsDir %>assets/images/common/favicon.ico" >
   <title><%= file.data.title %></title>
   <!-- link -->  
   <% if(file.data.vendorcss){ 
-    file.data.vendorcss.forEach(cssItem => { %>
+    file.data.vendorcss.forEach(cssItem => { -%>
     <link rel="stylesheet" href="<%= assetsDir %>assets/vendor/<%= cssItem %>.css">
-  <% }); } %>
+  <% }); } -%>
 
   <% if(file.data.css){ 
-    file.data.css.forEach(cssItem => { %>
+    file.data.css.forEach(cssItem => { -%>
   <link rel="stylesheet" href="<%= assetsDir %>assets/css/<%= cssItem %>.css">
-  <% }); } %>
+  <% }); } -%>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="wrapper" class="body-wrapper">
-    <%- include(`${layoutsDir}/_header`,{assetsDir}); %>
+<% const headerName = (file && file.data && file.data.header) ? file.data.header : 'header'; -%>
+<% const headerParts = headerName.split('/'); -%>
+<% const headerEjs = headerParts.slice(0, -1).concat('_' + headerParts[headerParts.length - 1]).join('/'); -%>
+<% if (ext === '.php' && phpInclude) { -%>
+      <?php $assetsDir = '<%= assetsDir %>'; include __DIR__ . '/<%= assetsDir.startsWith("./") ? assetsDir.slice(2) : assetsDir %>components/<%= headerName %>.php'; ?>
+<% } else { -%>
+      <%- include(`${componentsDir}/${headerEjs}`,{assetsDir}); -%>
+<% } -%>
     <%- contents %>    
-    <%- include(`${layoutsDir}/_footer`,{assetsDir}); %>
+<% const footerName = (file && file.data && file.data.footer) ? file.data.footer : 'footer'; -%>
+<% const footerParts = footerName.split('/'); -%>
+<% const footerEjs = footerParts.slice(0, -1).concat('_' + footerParts[footerParts.length - 1]).join('/'); -%>
+<% if (ext === '.php' && phpInclude) { -%>
+      <?php include __DIR__ . '/<%= assetsDir.startsWith("./") ? assetsDir.slice(2) : assetsDir %>components/<%= footerName %>.php'; ?>
+<% } else { -%>
+      <%- include(`${componentsDir}/${footerEjs}`,{assetsDir}); -%>
+<% } -%>
     <div data-gdpr="wrap" id="cookiewrap">
       <div class="inner">
         <p class="close"><a href="javascript:void(0)" data-gdpr="button" style="display: inline-block;">同意する</a></p>
@@ -46,13 +60,13 @@
     <script src="<%= assetsDir %>assets/vendor/jquery/jquery-3.5.1.min.js"></script>    
     <script src="<%= assetsDir %>assets/js/cookie.js"></script>
     <% if(file.data.vendorjs){ 
-      file.data.vendorjs.forEach(jsItem => { %>
+      file.data.vendorjs.forEach(jsItem => { -%>
       <script src="<%= assetsDir %>assets/vendor/<%= jsItem %>.js"></script>
-    <% }); } %>
+    <% }); } -%>
     <% if(file.data.js){ 
-      file.data.js.forEach(jsItem => { %>
+      file.data.js.forEach(jsItem => { -%>
       <script src="<%= assetsDir %>assets/js/<%= jsItem %>.js"></script>
-    <% }); } %>
+    <% }); } -%>
  
   </div>
   
